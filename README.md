@@ -2,209 +2,197 @@
 
 微博社交机器人检测工具包 - Weibo Social Bot Detection Toolkit
 
-基于随机森林的微博社交机器人检测系统，实现从数据采集到模型预测的完整流程。
-
-## 功能特性
-
-- 🔍 **数据采集**: 自动采集微博用户Profile和Posts数据
-- 🎯 **特征提取**: 提取49个Profile-level和Posts-level特征
-- 🤖 **模型训练**: 使用随机森林模型，支持5折交叉验证和网格搜索
-- 📊 **端到端预测**: 从用户ID到预测结果的完整流程
-- 🚀 **易于使用**: 提供Python API和命令行工具
+基于随机森林的微博社交机器人检测系统，提供开箱即用的预测功能。
 
 ## 安装
-
-### 从PyPI安装（发布后）
 
 ```bash
 pip install pybotfinder
 ```
 
-### 从源码安装
+## 快速开始 - 预测
 
-```bash
-git clone https://github.com/yourusername/pybotfinder.git
-cd pybotfinder
-pip install -e .
-```
-
-## 快速开始
-
-### Python API使用
-
-```python
-from pybotfinder import BotPredictor, WeiboCollector, FeatureExtractor, ModelTrainer
-
-# 1. 数据采集
-collector = WeiboCollector(cookie="YOUR_WEIBO_COOKIE")
-collector.crawl_account("1042567781", weibo_limit=30)
-
-# 2. 特征提取
-extractor = FeatureExtractor()
-features = extractor.extract_features("1042567781")
-
-# 3. 模型训练
-trainer = ModelTrainer(features_file="features.json")
-results = trainer.train_and_evaluate()
-
-# 4. 预测
-predictor = BotPredictor(model_path="bot_detection_model.pkl", cookie="YOUR_COOKIE")
-result = predictor.predict_from_user_id("1042567781")
-print(f"预测结果: {result['prediction']['label_name']}")
-```
-
-### 命令行使用
-
-```bash
-# 数据采集
-pybotfinder-collect --user-id 1042567781 --cookie "YOUR_COOKIE"
-
-# 特征提取
-pybotfinder-extract --user-id 1042567781 --output features.json
-
-# 模型训练
-pybotfinder-train --features features.json --output model.pkl
-
-# 预测
-pybotfinder-predict --user-id 1042567781 --model model.pkl --cookie "YOUR_COOKIE"
-```
-
-## 核心模块
-
-### 1. WeiboCollector - 数据采集模块
-
-采集用户Profile信息和最近的微博。
-
-```python
-from pybotfinder import WeiboCollector
-
-collector = WeiboCollector(cookie="YOUR_COOKIE")
-collector.crawl_account("1042567781", weibo_limit=30)
-```
-
-### 2. FeatureExtractor - 特征提取模块
-
-提取49个特征，包括：
-- **Profile-level特征** (23个): 昵称、描述、性别、粉丝/关注、统计信息等
-- **Posts-level特征** (26个): 帖子统计、原创内容特征、时间特征、地理位置等
-
-```python
-from pybotfinder import FeatureExtractor
-
-extractor = FeatureExtractor()
-features = extractor.extract_features("1042567781")
-```
-
-### 3. ModelTrainer - 模型训练模块
-
-使用随机森林模型进行训练，支持：
-- 5折交叉验证
-- 网格搜索最优超参数
-- 完整的评估指标
-
-```python
-from pybotfinder import ModelTrainer
-
-trainer = ModelTrainer(features_file="features.json")
-results = trainer.train_and_evaluate()
-```
-
-### 4. BotPredictor - 预测模块
-
-端到端预测，支持：
-- 从已有数据文件预测（不需要Cookie）
-- 从网络实时采集预测（需要Cookie）
-- 批量预测
+### Python API
 
 ```python
 from pybotfinder import BotPredictor
 
-predictor = BotPredictor(model_path="bot_detection_model.pkl", cookie="YOUR_COOKIE")
+# 初始化预测器（使用包内默认模型）
+predictor = BotPredictor(cookie="YOUR_WEIBO_COOKIE")
+
+# 预测单个用户
 result = predictor.predict_from_user_id("1042567781")
+print(f"预测结果: {result['prediction']['label_name']}")
+print(f"置信度: {result['prediction']['score']:.4f}")
 ```
 
-## 模型性能
+### 命令行
 
-根据实际训练结果：
+```bash
+pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
+```
 
-- **准确率**: 99.67%
-- **交叉验证F1**: 0.9970
-- **测试集F1 (宏平均)**: 0.9966
-- **测试集F1 (加权平均)**: 0.9967
+### 预测结果格式
 
-### 各类别性能
+```python
+{
+    'user_id': '1042567781',
+    'prediction': {
+        'label': 1,  # 0=人类, 1=机器人
+        'label_name': '机器人',
+        'score': 0.95,  # 预测概率
+        'confidence': 'high'  # 置信度级别
+    }
+}
+```
 
-- **人类 (类别0)**:
-  - 精确率: 1.0000
-  - 召回率: 0.9920
-  - F1-score: 0.9960
+## 训练数据来源
 
-- **机器人 (类别1)**:
-  - 精确率: 0.9945
-  - 召回率: 1.0000
-  - F1-score: 0.9972
+模型基于以下数据训练：
 
-## 特征说明
+- **机器人样本** (3845个): 来自 `bot.txt`，包含已标注的机器人账号
+- **人类样本** (4579个): 来自以下文件：
+  - `human.txt` (2270个): 普通用户账号
+  - `government.txt` (597个): 政府机构账号
+  - `influencer.txt` (931个): 影响者账号
+  - `media.txt` (781个): 媒体账号
+
+**总样本数**: 8424个用户
+
+## 训练特征
+
+模型使用49个特征进行训练，包括：
 
 ### Profile-level特征 (23个)
 
-- 昵称特征: 长度、数字/字母数量、特殊字符
-- 描述特征: 长度、敏感词、URL、@、#、数字、字母、特殊字符
-- 基本统计: 性别、粉丝数、关注数、粉丝关注比、微博数
-- 互动统计: 评论数、点赞数、转发数
-- 视觉特征: 头像/封面是否默认
+1. **昵称特征**:
+   - `screen_name_length`: 昵称长度
+   - `screen_name_digit_count`: 昵称中数字数量
+   - `screen_name_letter_count`: 昵称中字母数量
+   - `screen_name_special_count`: 昵称中特殊字符数量
+
+2. **描述特征**:
+   - `description_length`: 描述长度
+   - `description_sensitive_words`: 描述中敏感词数量
+   - `description_url_count`: 描述中URL数量
+   - `description_at_count`: 描述中@数量
+   - `description_hashtag_count`: 描述中#数量
+   - `description_digit_count`: 描述中数字数量
+   - `description_letter_count`: 描述中字母数量
+   - `description_special_count`: 描述中特殊字符数量
+
+3. **基本统计**:
+   - `gender_f`: 性别（女性=1，其他=0）
+   - `gender_m`: 性别（男性=1，其他=0）
+   - `followers_count`: 粉丝数
+   - `friends_count`: 关注数
+   - `followers_friends_ratio`: 粉丝/关注比例
+   - `statuses_count`: 微博总数
+
+4. **互动统计**:
+   - `total_comments`: 总评论数
+   - `total_likes`: 总点赞数
+   - `total_reposts`: 总转发数
+
+5. **视觉特征**:
+   - `is_default_avatar`: 是否使用默认头像（1=是，0=否）
+   - `is_default_cover`: 是否使用默认封面（1=是，0=否）
 
 ### Posts-level特征 (26个)
 
-- 基本统计: 帖子数量、原创比例
-- 原创内容特征: 文本长度、标点、图片、视频、链接、@、# 的均值和标准差
-- 时间特征: 发布间隔、峰值发布数量
-- 其他: 地理位置比例、转发用户信息熵
+1. **基本统计**:
+   - `posts_count`: 帖子数量
+   - `original_ratio`: 原创微博比例
 
-## 依赖包
+2. **原创内容特征** (均值和标准差):
+   - `avg_text_length_original`: 平均文本长度
+   - `std_text_length_original`: 文本长度标准差
+   - `avg_punctuation_count_original`: 平均标点符号数
+   - `std_punctuation_count_original`: 标点符号数标准差
+   - `avg_image_count_original`: 平均图片数
+   - `std_image_count_original`: 图片数标准差
+   - `avg_video_count_original`: 平均视频数
+   - `std_video_count_original`: 视频数标准差
+   - `avg_link_count_original`: 平均链接数
+   - `std_link_count_original`: 链接数标准差
+   - `avg_at_count_original`: 平均@数量
+   - `std_at_count_original`: @数量标准差
+   - `avg_hashtag_count_original`: 平均#数量
+   - `std_hashtag_count_original`: #数量标准差
 
-- `requests>=2.31.0` - HTTP请求
-- `scikit-learn>=1.3.0` - 机器学习
-- `numpy>=1.24.0` - 数值计算
-- `pandas>=2.0.0` - 数据处理
-- `joblib>=1.3.0` - 模型序列化
+3. **时间特征**:
+   - `avg_post_interval`: 平均发帖间隔（小时）
+   - `std_post_interval`: 发帖间隔标准差（小时）
+   - `peak_hourly_posts`: 峰值小时发帖数
+   - `peak_daily_posts`: 峰值日发帖数
+
+4. **其他特征**:
+   - `location_ratio`: 包含地理位置的微博比例
+   - `repost_user_entropy`: 转发用户信息熵
+
+## 模型评估
+
+### 整体性能
+
+- **准确率 (Accuracy)**: 98.99%
+- **交叉验证F1分数**: 0.9844 (±0.0035)
+- **测试集F1分数 (宏平均)**: 0.9898
+- **测试集F1分数 (加权平均)**: 0.9899
+
+### 各类别性能
+
+**人类 (类别0)**:
+- 精确率 (Precision): 0.9839
+- 召回率 (Recall): 0.9978
+- F1-score: 0.9908
+
+**机器人 (类别1)**:
+- 精确率 (Precision): 0.9974
+- 召回率 (Recall): 0.9805
+- F1-score: 0.9889
+
+### 最佳模型参数
+
+- `n_estimators`: 50
+- `max_depth`: 20
+- `max_features`: 'sqrt'
+- `min_samples_split`: 2
+- `min_samples_leaf`: 2
+
+### 重要特征 (Top 5)
+
+1. `original_ratio`: 0.2041 - 原创微博比例
+2. `followers_friends_ratio`: 0.1067 - 粉丝/关注比例
+3. `statuses_count`: 0.0927 - 微博总数
+4. `std_post_interval`: 0.0907 - 发帖间隔标准差
+5. `peak_hourly_posts`: 0.0685 - 峰值小时发帖数
 
 ## 注意事项
 
-1. **Cookie设置**: 从网络采集数据需要有效的微博Cookie
-2. **数据格式**: 确保数据格式与训练时一致
-3. **模型文件**: 预测前确保模型文件存在
-4. **特征顺序**: 预测时特征顺序必须与训练时一致
+1. **Cookie获取**: 
+   - Cookie需要从微博网页版获取
+   - 访问 https://weibo.com 并登录
+   - 打开浏览器开发者工具（F12）
+   - 在Network标签中找到任意请求，复制请求头中的Cookie值
+   - Cookie格式示例: `SUB=xxx; SUBP=xxx; ...`
+   - Cookie用于访问微博API采集用户数据，请妥善保管
 
-## 开发
+2. **模型文件**: 
+   - 包内已包含训练好的模型文件 (`bot_detection_model.pkl`)
+   - 无需额外下载或训练，安装后即可使用
 
-```bash
-# 克隆仓库
-git clone https://github.com/yourusername/pybotfinder.git
-cd pybotfinder
+3. **数据采集**: 
+   - 预测时需要采集用户数据，请确保网络连接正常
+   - 采集过程可能需要几秒钟时间
 
-# 安装开发依赖
-pip install -e ".[dev]"
-
-# 运行测试
-pytest
-
-# 代码格式化
-black pybotfinder/
-```
+4. **特征要求**: 
+   - 预测时自动提取49个特征
+   - 特征顺序与训练时保持一致
 
 ## 许可证
 
 本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
 
-## 贡献
-
-欢迎提交 Issue 和 Pull Request！
-
 ## 作者
 
 Xiao MENG - xiaomeng7-c@my.cityu.edu.hk
-
-## 致谢
-
-感谢所有为本项目做出贡献的开发者！
