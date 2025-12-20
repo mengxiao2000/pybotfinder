@@ -23,7 +23,7 @@ predictor = BotPredictor(cookie="YOUR_WEIBO_COOKIE")
 # 预测单个用户
 result = predictor.predict_from_user_id("1042567781")
 print(f"预测结果: {result['prediction']['label_name']}")
-print(f"置信度: {result['prediction']['score']:.4f}")
+print(f"机器人得分: {result['prediction']['bot_score']:.4f}")
 ```
 
 ### 命令行
@@ -39,12 +39,19 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
     'user_id': '1042567781',
     'prediction': {
         'label': 1,  # 0=人类, 1=机器人
-        'label_name': '机器人',
-        'score': 0.95,  # 预测概率
-        'confidence': 'high'  # 置信度级别
+        'label_name': '机器人',  # '人类' 或 '机器人'
+        'bot_score': 0.95  # 机器人得分（范围0-1，值越大表示越可能是机器人）
     }
 }
 ```
+
+**返回值说明：**
+- `label`: 预测标签，0表示人类，1表示机器人
+- `label_name`: 标签名称，'人类' 或 '机器人'
+- `bot_score`: 机器人得分，是模型预测该账号为机器人的概率值（范围0-1）
+  - `bot_score` 接近1表示模型认为该账号很可能是机器人
+  - `bot_score` 接近0表示模型认为该账号很可能是人类
+  - **注意**：`bot_score` 是模型输出的概率值，不是统计意义上的置信区间，应结合具体应用场景理解
 
 ## 训练数据来源
 
@@ -154,22 +161,6 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 - 精确率 (Precision): 0.9974
 - 召回率 (Recall): 0.9805
 - F1-score: 0.9889
-
-### 最佳模型参数
-
-- `n_estimators`: 50
-- `max_depth`: 20
-- `max_features`: 'sqrt'
-- `min_samples_split`: 2
-- `min_samples_leaf`: 2
-
-### 重要特征 (Top 5)
-
-1. `original_ratio`: 0.2041 - 原创微博比例
-2. `followers_friends_ratio`: 0.1067 - 粉丝/关注比例
-3. `statuses_count`: 0.0927 - 微博总数
-4. `std_post_interval`: 0.0907 - 发帖间隔标准差
-5. `peak_hourly_posts`: 0.0685 - 峰值小时发帖数
 
 ## 注意事项
 

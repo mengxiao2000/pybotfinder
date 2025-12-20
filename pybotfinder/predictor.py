@@ -193,9 +193,8 @@ class BotPredictor:
         Returns:
             预测结果字典，包含：
             - label: 预测标签 (0=人类, 1=机器人)
-            - probability: 预测概率
-            - probability_human: 人类概率
-            - probability_bot: 机器人概率
+            - label_name: 标签名称 ('人类' 或 '机器人')
+            - bot_score: 机器人得分（模型预测为机器人的概率，范围0-1）
         """
         if self.model is None:
             raise ValueError("模型未加载")
@@ -224,13 +223,10 @@ class BotPredictor:
         result = {
             'label': int(prediction),
             'label_name': '机器人' if prediction == 1 else '人类',
-            'probability': float(probabilities[prediction]),
-            'probability_human': float(probabilities[0]),
-            'probability_bot': float(probabilities[1]),
-            'confidence': '高' if max(probabilities) > 0.8 else '中' if max(probabilities) > 0.6 else '低'
+            'bot_score': float(probabilities[1])  # 机器人类别的概率
         }
         
-        logger.info(f"预测结果: {result['label_name']} (概率: {result['probability']:.4f})")
+        logger.info(f"预测结果: {result['label_name']} (bot_score: {result['bot_score']:.4f})")
         
         return result
     
