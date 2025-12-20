@@ -63,72 +63,76 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 
 模型使用49个特征进行训练，包括：
 
-### Profile-level特征 (23个)
+### Profile-level特征 (24个)
 
-1. **昵称特征**:
+1. **昵称特征** (4个):
    - `screen_name_length`: 昵称长度
    - `screen_name_digit_count`: 昵称中数字数量
    - `screen_name_letter_count`: 昵称中字母数量
-   - `screen_name_special_count`: 昵称中特殊字符数量
+   - `screen_name_has_special_char`: 昵称中是否包含特殊字符（1=是，0=否）
 
-2. **描述特征**:
+2. **描述特征** (9个):
    - `description_length`: 描述长度
-   - `description_sensitive_words`: 描述中敏感词数量
-   - `description_url_count`: 描述中URL数量
-   - `description_at_count`: 描述中@数量
-   - `description_hashtag_count`: 描述中#数量
-   - `description_digit_count`: 描述中数字数量
-   - `description_letter_count`: 描述中字母数量
-   - `description_special_count`: 描述中特殊字符数量
+   - `description_has_sensitive_word`: 描述中是否包含敏感词（1=是，0=否）
+   - `description_has_url`: 描述中是否包含URL（1=是，0=否）
+   - `description_has_at`: 描述中是否包含@（1=是，0=否）
+   - `description_has_hash`: 描述中是否包含#（1=是，0=否）
+   - `description_has_digit`: 描述中是否包含数字（1=是，0=否）
+   - `description_has_letter`: 描述中是否包含字母（1=是，0=否）
+   - `description_has_special_char`: 描述中是否包含特殊字符（1=是，0=否）
 
-3. **基本统计**:
-   - `gender_f`: 性别（女性=1，其他=0）
+3. **基本统计** (6个):
    - `gender_m`: 性别（男性=1，其他=0）
+   - `gender_f`: 性别（女性=1，其他=0）
+   - `gender_n`: 性别（未知=1，其他=0）
    - `followers_count`: 粉丝数
    - `friends_count`: 关注数
    - `followers_friends_ratio`: 粉丝/关注比例
    - `statuses_count`: 微博总数
 
-4. **互动统计**:
-   - `total_comments`: 总评论数
-   - `total_likes`: 总点赞数
-   - `total_reposts`: 总转发数
+4. **互动统计** (3个):
+   - `comments_count`: 评论数（Profile中初始化为0，实际在Posts中计算）
+   - `likes_count`: 点赞数（Profile中初始化为0，实际在Posts中计算）
+   - `reposts_count`: 转发数（Profile中初始化为0，实际在Posts中计算）
 
-5. **视觉特征**:
+5. **视觉特征** (2个):
    - `is_default_avatar`: 是否使用默认头像（1=是，0=否）
    - `is_default_cover`: 是否使用默认封面（1=是，0=否）
 
-### Posts-level特征 (26个)
+### Posts-level特征 (25个)
 
-1. **基本统计**:
+1. **基本统计** (2个):
    - `posts_count`: 帖子数量
    - `original_ratio`: 原创微博比例
 
-2. **原创内容特征** (均值和标准差):
+2. **原创内容特征** (14个，均值和标准差):
    - `avg_text_length_original`: 平均文本长度
    - `std_text_length_original`: 文本长度标准差
    - `avg_punctuation_count_original`: 平均标点符号数
    - `std_punctuation_count_original`: 标点符号数标准差
-   - `avg_image_count_original`: 平均图片数
-   - `std_image_count_original`: 图片数标准差
+   - `avg_pic_count_original`: 平均图片数
+   - `std_pic_count_original`: 图片数标准差
    - `avg_video_count_original`: 平均视频数
    - `std_video_count_original`: 视频数标准差
    - `avg_link_count_original`: 平均链接数
    - `std_link_count_original`: 链接数标准差
    - `avg_at_count_original`: 平均@数量
    - `std_at_count_original`: @数量标准差
-   - `avg_hashtag_count_original`: 平均#数量
-   - `std_hashtag_count_original`: #数量标准差
+   - `avg_hash_count_original`: 平均#数量
+   - `std_hash_count_original`: #数量标准差
 
-3. **时间特征**:
-   - `avg_post_interval`: 平均发帖间隔（小时）
-   - `std_post_interval`: 发帖间隔标准差（小时）
+3. **时间特征** (4个):
+   - `avg_post_interval`: 平均发帖间隔（秒）
+   - `std_post_interval`: 发帖间隔标准差（秒）
    - `peak_hourly_posts`: 峰值小时发帖数
    - `peak_daily_posts`: 峰值日发帖数
 
-4. **其他特征**:
+4. **其他特征** (5个):
    - `location_ratio`: 包含地理位置的微博比例
    - `repost_user_entropy`: 转发用户信息熵
+   - `total_comments`: 总评论数
+   - `total_likes`: 总点赞数
+   - `total_reposts`: 总转发数
 
 ## 模型评估
 
