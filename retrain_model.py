@@ -26,7 +26,7 @@ def main():
     base_dir = Path(__file__).parent.parent
     profiles_dir = base_dir / "pybotfinder_prepare" / "dataset" / "profiles_dir"
     posts_dir = base_dir / "pybotfinder_prepare" / "dataset" / "posts_dir"
-    userlist_dir = base_dir
+    userlist_dir = Path(__file__).parent / "account_list"
     
     # 用户列表文件
     bot_file = userlist_dir / "bot.txt"

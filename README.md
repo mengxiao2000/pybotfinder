@@ -74,9 +74,9 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 
 ## 训练特征
 
-模型使用46个特征进行训练，包括：
+模型使用47个特征进行训练，包括：
 
-### Profile-level特征 (24个)
+### Profile-level特征 (21个)
 
 1. **昵称特征** (4个):
    - `screen_name_length`: 昵称长度
@@ -94,7 +94,7 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
    - `description_has_letter`: 描述中是否包含字母（1=是，0=否）
    - `description_has_special_char`: 描述中是否包含特殊字符（1=是，0=否）
 
-3. **基本统计** (6个):
+3. **基本统计** (7个):
    - `gender_m`: 性别（男性=1，其他=0）
    - `gender_f`: 性别（女性=1，其他=0）
    - `gender_n`: 性别（未知=1，其他=0）
@@ -103,16 +103,11 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
    - `followers_friends_ratio`: 粉丝/关注比例
    - `statuses_count`: 微博总数
 
-4. **互动统计** (3个):
-   - `comments_count`: 总评论数（从profile的status_total_counter字段获取）
-   - `likes_count`: 总点赞数（从profile的status_total_counter字段获取）
-   - `reposts_count`: 总转发数（从profile的status_total_counter字段获取）
-
-5. **视觉特征** (2个):
+4. **视觉特征** (2个):
    - `is_default_avatar`: 是否使用默认头像（1=是，0=否）
    - `is_default_cover`: 是否使用默认封面（1=是，0=否）
 
-### Posts-level特征 (25个)
+### Posts-level特征 (26个)
 
 1. **基本统计** (2个):
    - `posts_count`: 收集到的帖子数量
@@ -140,7 +135,13 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
    - `peak_hourly_posts`: 峰值小时发帖数
    - `peak_daily_posts`: 峰值日发帖数
 
-4. **其他特征** (2个):
+4. **情感特征** (4个，基于SnowNLP):
+   - `avg_sentiment_positive`: 积极情感平均值
+   - `std_sentiment_positive`: 积极情感标准差
+   - `avg_sentiment_negative`: 消极情感平均值
+   - `std_sentiment_negative`: 消极情感标准差
+
+5. **其他特征** (2个):
    - `location_ratio`: 包含地理位置的微博比例
    - `repost_user_entropy`: 转发用户信息熵
 
@@ -148,22 +149,22 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 
 ### 整体性能
 
-- **准确率 (Accuracy)**: 99.17%
-- **交叉验证F1分数**: 0.9872 (±0.0036)
-- **测试集F1分数 (宏平均)**: 0.9916
-- **测试集F1分数 (加权平均)**: 0.9917
+- **准确率 (Accuracy)**: 98.93%
+- **交叉验证F1分数**: 0.9851 (±0.0028)
+- **测试集F1分数 (宏平均)**: 0.9892
+- **测试集F1分数 (加权平均)**: 0.9893
 
 ### 各类别性能
 
 **人类 (类别0)**:
-- 精确率 (Precision): 0.9870
+- 精确率 (Precision): 0.9828
 - 召回率 (Recall): 0.9978
-- F1-score: 0.9924
+- F1-score: 0.9902
 
 **机器人 (类别1)**:
 - 精确率 (Precision): 0.9974
-- 召回率 (Recall): 0.9844
-- F1-score: 0.9908
+- 召回率 (Recall): 0.9785
+- F1-score: 0.9879
 
 ## 注意事项
 

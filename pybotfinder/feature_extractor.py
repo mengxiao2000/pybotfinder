@@ -14,6 +14,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# 尝试导入SnowNLP
+try:
+    from snownlp import SnowNLP
+    SNOWNLP_AVAILABLE = True
+except ImportError:
+    SNOWNLP_AVAILABLE = False
+    logger.warning("SnowNLP未安装，情感特征将被跳过。请运行: pip install snownlp")
+
 # 敏感词列表（示例，可以根据需要扩展）
 SENSITIVE_WORDS = [
     '广告', '推广', '营销', '代理', '代购', '刷', '刷单', '刷粉',
@@ -130,19 +138,6 @@ class FeatureExtractor:
             statuses_count = self._safe_int(user.get('statuses_count', 0))
             features['statuses_count'] = statuses_count
             
-            # 评论、点赞、转发数（从status_total_counter字段获取）
-            status_total_counter = user.get('status_total_counter', {})
-            if status_total_counter and isinstance(status_total_counter, dict):
-                # 从status_total_counter提取总数
-                features['comments_count'] = self._safe_int(status_total_counter.get('comment_cnt', 0))
-                features['likes_count'] = self._safe_int(status_total_counter.get('like_cnt', 0))
-                features['reposts_count'] = self._safe_int(status_total_counter.get('repost_cnt', 0))
-            else:
-                # 如果没有status_total_counter，设为0
-                features['comments_count'] = 0
-                features['likes_count'] = 0
-                features['reposts_count'] = 0
-            
             # 头像和封面图是否默认
             profile_image_url = str(user.get('profile_image_url', '') or user.get('avatar_hd', '') or '')
             cover_image = str(user.get('cover_image_phone', '') or user.get('cover_image', '') or '')
@@ -213,8 +208,9 @@ class FeatureExtractor:
             repost_entropy = self._calculate_repost_user_entropy(repost_posts)
             features['repost_user_entropy'] = repost_entropy
             
-            # 注意：不再从posts聚合转评赞数据，避免标签泄漏
-            # 转评赞数据应从profile的status_total_counter字段获取
+            # 情感特征（基于SnowNLP）
+            sentiment_features = self._extract_sentiment_features(original_posts)
+            features.update(sentiment_features)
             
         except Exception as e:
             import traceback
@@ -394,6 +390,88 @@ class FeatureExtractor:
         
         return entropy
     
+    def _extract_sentiment_features(self, original_posts: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """提取基于SnowNLP的情感特征"""
+        features = {}
+        
+        if not SNOWNLP_AVAILABLE:
+            # 如果SnowNLP不可用，返回默认值
+            return {
+                'avg_sentiment_positive': 0.0,
+                'std_sentiment_positive': 0.0,
+                'avg_sentiment_negative': 0.0,
+                'std_sentiment_negative': 0.0,
+            }
+        
+        if not original_posts:
+            return {
+                'avg_sentiment_positive': 0.0,
+                'std_sentiment_positive': 0.0,
+                'avg_sentiment_negative': 0.0,
+                'std_sentiment_negative': 0.0,
+            }
+        
+        sentiment_scores = []
+        positive_scores = []
+        negative_scores = []
+        
+        for post in original_posts:
+            if post is None or not isinstance(post, dict):
+                continue
+            
+            # 获取文本内容
+            text = str(post.get('text_raw', '') or post.get('text', '') or '')
+            # 清理HTML标签
+            text = re.sub(r'<[^>]+>', '', text)
+            # 移除URL、@、#等
+            text = re.sub(r'http[s]?://\S+', '', text)
+            text = re.sub(r'@\w+', '', text)
+            text = re.sub(r'#.*?#', '', text)
+            text = text.strip()
+            
+            if not text or len(text) < 2:
+                continue
+            
+            try:
+                s = SnowNLP(text)
+                # 获取情感倾向（0-1之间，越接近1越积极）
+                sentiment = s.sentiments
+                sentiment_scores.append(sentiment)
+                
+                # 积极情感（>0.5为积极）
+                if sentiment > 0.5:
+                    positive_scores.append(sentiment)
+                else:
+                    negative_scores.append(1 - sentiment)  # 转换为消极程度
+            except Exception as e:
+                logger.debug(f"情感分析失败: {e}")
+                continue
+        
+        # 计算统计特征
+        if sentiment_scores:
+            # 积极情感的平均值和标准差
+            if positive_scores:
+                features['avg_sentiment_positive'] = statistics.mean(positive_scores)
+                features['std_sentiment_positive'] = statistics.stdev(positive_scores) if len(positive_scores) > 1 else 0.0
+            else:
+                features['avg_sentiment_positive'] = 0.0
+                features['std_sentiment_positive'] = 0.0
+            
+            # 消极情感的平均值和标准差
+            if negative_scores:
+                features['avg_sentiment_negative'] = statistics.mean(negative_scores)
+                features['std_sentiment_negative'] = statistics.stdev(negative_scores) if len(negative_scores) > 1 else 0.0
+            else:
+                features['avg_sentiment_negative'] = 0.0
+                features['std_sentiment_negative'] = 0.0
+        else:
+            features['avg_sentiment_positive'] = 0.0
+            features['std_sentiment_positive'] = 0.0
+            features['avg_sentiment_negative'] = 0.0
+            features['std_sentiment_negative'] = 0.0
+        
+        return features
+    
     def _safe_int(self, value: Any) -> int:
         """安全转换为整数"""
         if value is None:
@@ -477,6 +555,10 @@ class FeatureExtractor:
             'std_at_count_original': 0,
             'avg_hash_count_original': 0,
             'std_hash_count_original': 0,
+            'avg_sentiment_positive': 0.0,
+            'std_sentiment_positive': 0.0,
+            'avg_sentiment_negative': 0.0,
+            'std_sentiment_negative': 0.0,
         }
     
     def extract_features(self, user_id: str) -> Dict[str, Any]:
