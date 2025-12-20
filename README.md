@@ -74,7 +74,7 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 
 ## 训练特征
 
-模型使用40个特征进行训练，包括：
+模型使用26个特征进行训练，包括：
 
 ### Profile-level特征 (10个)
 
@@ -96,7 +96,7 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 4. **视觉特征** (1个):
    - `is_default_avatar`: 是否使用默认头像（1=是，0=否）
 
-### Posts-level特征 (30个)
+### Posts-level特征 (16个)
 
 1. **基本统计** (2个):
    - `posts_count`: 收集到的帖子数量
@@ -128,17 +128,17 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 
 ### 整体性能
 
-- **准确率 (Accuracy)**: 98.99%
-- **交叉验证F1分数**: 0.9851 (±0.0028)
+- **准确率 (Accuracy)**: 99.05%
+- **交叉验证F1分数**: 0.9834 (±0.0014)
 - **测试集F1分数 (宏平均)**: 0.9898
 - **测试集F1分数 (加权平均)**: 0.9899
 
 ### 各类别性能
 
 **人类 (类别0)**:
-- 精确率 (Precision): 0.9847
-- 召回率 (Recall): 0.9967
-- F1-score: 0.9907
+- 精确率 (Precision): 0.9849
+- 召回率 (Recall): 0.9989
+- F1-score: 0.9919
 
 **机器人 (类别1)**:
 - 精确率 (Precision): 0.9967

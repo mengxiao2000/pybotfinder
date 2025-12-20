@@ -252,24 +252,16 @@ class FeatureExtractor:
             hash_count = len(re.findall(r'#.*?#', text))
             hash_counts.append(hash_count)
         
-        # 计算均值和标准差
+        # 计算均值和标准差（只保留重要的特征）
         features['avg_text_length_original'] = statistics.mean(text_lengths) if text_lengths else 0
-        features['std_text_length_original'] = statistics.stdev(text_lengths) if len(text_lengths) > 1 else 0
+        
+        features['avg_punctuation_count_original'] = statistics.mean(punctuation_counts) if punctuation_counts else 0
+        features['std_punctuation_count_original'] = statistics.stdev(punctuation_counts) if len(punctuation_counts) > 1 else 0
         
         features['avg_pic_count_original'] = statistics.mean(pic_counts) if pic_counts else 0
-        features['std_pic_count_original'] = statistics.stdev(pic_counts) if len(pic_counts) > 1 else 0
         
         features['avg_video_count_original'] = statistics.mean(video_counts) if video_counts else 0
         features['std_video_count_original'] = statistics.stdev(video_counts) if len(video_counts) > 1 else 0
-        
-        features['avg_link_count_original'] = statistics.mean(link_counts) if link_counts else 0
-        features['std_link_count_original'] = statistics.stdev(link_counts) if len(link_counts) > 1 else 0
-        
-        features['avg_at_count_original'] = statistics.mean(at_counts) if at_counts else 0
-        features['std_at_count_original'] = statistics.stdev(at_counts) if len(at_counts) > 1 else 0
-        
-        features['avg_hash_count_original'] = statistics.mean(hash_counts) if hash_counts else 0
-        features['std_hash_count_original'] = statistics.stdev(hash_counts) if len(hash_counts) > 1 else 0
         
         return features
     
@@ -473,28 +465,14 @@ class FeatureExtractor:
         return {
             'screen_name_length': 0,
             'screen_name_digit_count': 0,
-            'screen_name_letter_count': 0,
-            'screen_name_has_special_char': 0,
             'description_length': 0,
             'description_has_sensitive_word': 0,
-            'description_has_url': 0,
-            'description_has_at': 0,
-            'description_has_hash': 0,
-            'description_has_digit': 0,
-            'description_has_letter': 0,
-            'description_has_special_char': 0,
-            'gender_m': 0,
-            'gender_f': 0,
             'gender_n': 1,
             'followers_count': 0,
             'friends_count': 0,
             'followers_friends_ratio': 0,
             'statuses_count': 0,
-            'comments_count': 0,
-            'likes_count': 0,
-            'reposts_count': 0,
             'is_default_avatar': 1,
-            'is_default_cover': 1,
         }
     
     def _get_default_posts_features(self) -> Dict[str, Any]:
