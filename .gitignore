@@ -42,6 +42,7 @@ dataset/
 *.csv
 *.txt
 !requirements.txt
+!account_list/*.txt
 
 # Logs
 *.log
