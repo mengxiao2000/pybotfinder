@@ -74,60 +74,41 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 
 ## 训练特征
 
-模型使用47个特征进行训练，包括：
+模型使用40个特征进行训练，包括：
 
-### Profile-level特征 (21个)
+### Profile-level特征 (10个)
 
-1. **昵称特征** (4个):
+1. **昵称特征** (2个):
    - `screen_name_length`: 昵称长度
    - `screen_name_digit_count`: 昵称中数字数量
-   - `screen_name_letter_count`: 昵称中字母数量
-   - `screen_name_has_special_char`: 昵称中是否包含特殊字符（1=是，0=否）
 
-2. **描述特征** (9个):
+2. **描述特征** (2个):
    - `description_length`: 描述长度
    - `description_has_sensitive_word`: 描述中是否包含敏感词（1=是，0=否）
-   - `description_has_url`: 描述中是否包含URL（1=是，0=否）
-   - `description_has_at`: 描述中是否包含@（1=是，0=否）
-   - `description_has_hash`: 描述中是否包含#（1=是，0=否）
-   - `description_has_digit`: 描述中是否包含数字（1=是，0=否）
-   - `description_has_letter`: 描述中是否包含字母（1=是，0=否）
-   - `description_has_special_char`: 描述中是否包含特殊字符（1=是，0=否）
 
-3. **基本统计** (7个):
-   - `gender_m`: 性别（男性=1，其他=0）
-   - `gender_f`: 性别（女性=1，其他=0）
+3. **基本统计** (5个):
    - `gender_n`: 性别（未知=1，其他=0）
    - `followers_count`: 粉丝数
    - `friends_count`: 关注数
    - `followers_friends_ratio`: 粉丝/关注比例
    - `statuses_count`: 微博总数
 
-4. **视觉特征** (2个):
+4. **视觉特征** (1个):
    - `is_default_avatar`: 是否使用默认头像（1=是，0=否）
-   - `is_default_cover`: 是否使用默认封面（1=是，0=否）
 
-### Posts-level特征 (26个)
+### Posts-level特征 (30个)
 
 1. **基本统计** (2个):
    - `posts_count`: 收集到的帖子数量
    - `original_ratio`: 原创微博比例
 
-2. **原创内容特征** (14个，均值和标准差):
+2. **原创内容特征** (6个，保留重要的均值和标准差):
    - `avg_text_length_original`: 平均文本长度
-   - `std_text_length_original`: 文本长度标准差
    - `avg_punctuation_count_original`: 平均标点符号数
    - `std_punctuation_count_original`: 标点符号数标准差
    - `avg_pic_count_original`: 平均图片数
-   - `std_pic_count_original`: 图片数标准差
    - `avg_video_count_original`: 平均视频数
    - `std_video_count_original`: 视频数标准差
-   - `avg_link_count_original`: 平均链接数
-   - `std_link_count_original`: 链接数标准差
-   - `avg_at_count_original`: 平均@数量
-   - `std_at_count_original`: @数量标准差
-   - `avg_hash_count_original`: 平均#数量
-   - `std_hash_count_original`: #数量标准差
 
 3. **时间特征** (4个):
    - `avg_post_interval`: 平均发帖间隔（秒）
@@ -135,11 +116,9 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
    - `peak_hourly_posts`: 峰值小时发帖数
    - `peak_daily_posts`: 峰值日发帖数
 
-4. **情感特征** (4个，基于SnowNLP):
+4. **情感特征** (2个，基于SnowNLP，只保留平均值):
    - `avg_sentiment_positive`: 积极情感平均值
-   - `std_sentiment_positive`: 积极情感标准差
    - `avg_sentiment_negative`: 消极情感平均值
-   - `std_sentiment_negative`: 消极情感标准差
 
 5. **其他特征** (2个):
    - `location_ratio`: 包含地理位置的微博比例
@@ -149,22 +128,22 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 
 ### 整体性能
 
-- **准确率 (Accuracy)**: 98.93%
+- **准确率 (Accuracy)**: 98.99%
 - **交叉验证F1分数**: 0.9851 (±0.0028)
-- **测试集F1分数 (宏平均)**: 0.9892
-- **测试集F1分数 (加权平均)**: 0.9893
+- **测试集F1分数 (宏平均)**: 0.9898
+- **测试集F1分数 (加权平均)**: 0.9899
 
 ### 各类别性能
 
 **人类 (类别0)**:
-- 精确率 (Precision): 0.9828
-- 召回率 (Recall): 0.9978
-- F1-score: 0.9902
+- 精确率 (Precision): 0.9847
+- 召回率 (Recall): 0.9967
+- F1-score: 0.9907
 
 **机器人 (类别1)**:
-- 精确率 (Precision): 0.9974
-- 召回率 (Recall): 0.9785
-- F1-score: 0.9879
+- 精确率 (Precision): 0.9967
+- 召回率 (Recall): 0.9818
+- F1-score: 0.9892
 
 ## 注意事项
 
@@ -199,6 +178,3 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 
 本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
 
-## 作者
-
-Xiao MENG - xiaomeng7-c@my.cityu.edu.hk

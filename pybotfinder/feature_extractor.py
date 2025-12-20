@@ -103,28 +103,18 @@ class FeatureExtractor:
                 logger.warning("无法找到用户信息")
                 return self._get_default_profile_features()
             
-            # 昵称相关特征
+            # 昵称相关特征（只保留最重要的）
             screen_name = str(user.get('screen_name', '') or user.get('name', '') or '')
             features['screen_name_length'] = len(screen_name)
             features['screen_name_digit_count'] = len(re.findall(r'\d', screen_name))
-            features['screen_name_letter_count'] = len(re.findall(r'[a-zA-Z]', screen_name))
-            features['screen_name_has_special_char'] = 1 if re.search(r'[^\w\s\u4e00-\u9fa5]', screen_name) else 0
             
             # 描述相关特征
             description = str(user.get('description', '') or user.get('desc', '') or '')
             features['description_length'] = len(description)
             features['description_has_sensitive_word'] = 1 if description and any(word in description for word in SENSITIVE_WORDS) else 0
-            features['description_has_url'] = 1 if re.search(r'http[s]?://', description) else 0
-            features['description_has_at'] = 1 if '@' in description else 0
-            features['description_has_hash'] = 1 if '#' in description else 0
-            features['description_has_digit'] = 1 if re.search(r'\d', description) else 0
-            features['description_has_letter'] = 1 if re.search(r'[a-zA-Z]', description) else 0
-            features['description_has_special_char'] = 1 if re.search(r'[^\w\s\u4e00-\u9fa5]', description) else 0
-            
-            # 性别特征（m=男, f=女, n=未知）
+
+            # 性别特征（只保留未知性别，因为机器人可能更倾向于不设置性别）
             gender = str(user.get('gender', 'n') or 'n')
-            features['gender_m'] = 1 if gender == 'm' else 0
-            features['gender_f'] = 1 if gender == 'f' else 0
             features['gender_n'] = 1 if gender == 'n' else 0
             
             # 粉丝和关注数
@@ -138,11 +128,9 @@ class FeatureExtractor:
             statuses_count = self._safe_int(user.get('statuses_count', 0))
             features['statuses_count'] = statuses_count
             
-            # 头像和封面图是否默认
+            # 头像是否默认（移除封面图特征）
             profile_image_url = str(user.get('profile_image_url', '') or user.get('avatar_hd', '') or '')
-            cover_image = str(user.get('cover_image_phone', '') or user.get('cover_image', '') or '')
             features['is_default_avatar'] = 1 if 'default' in profile_image_url.lower() or not profile_image_url else 0
-            features['is_default_cover'] = 1 if 'default' in cover_image.lower() or not cover_image else 0
             
         except Exception as e:
             logger.error(f"提取profile特征时出错: {e}")
@@ -267,9 +255,6 @@ class FeatureExtractor:
         # 计算均值和标准差
         features['avg_text_length_original'] = statistics.mean(text_lengths) if text_lengths else 0
         features['std_text_length_original'] = statistics.stdev(text_lengths) if len(text_lengths) > 1 else 0
-        
-        features['avg_punctuation_count_original'] = statistics.mean(punctuation_counts) if punctuation_counts else 0
-        features['std_punctuation_count_original'] = statistics.stdev(punctuation_counts) if len(punctuation_counts) > 1 else 0
         
         features['avg_pic_count_original'] = statistics.mean(pic_counts) if pic_counts else 0
         features['std_pic_count_original'] = statistics.stdev(pic_counts) if len(pic_counts) > 1 else 0
@@ -398,17 +383,13 @@ class FeatureExtractor:
             # 如果SnowNLP不可用，返回默认值
             return {
                 'avg_sentiment_positive': 0.0,
-                'std_sentiment_positive': 0.0,
                 'avg_sentiment_negative': 0.0,
-                'std_sentiment_negative': 0.0,
             }
         
         if not original_posts:
             return {
                 'avg_sentiment_positive': 0.0,
-                'std_sentiment_positive': 0.0,
                 'avg_sentiment_negative': 0.0,
-                'std_sentiment_negative': 0.0,
             }
         
         sentiment_scores = []
@@ -447,28 +428,22 @@ class FeatureExtractor:
                 logger.debug(f"情感分析失败: {e}")
                 continue
         
-        # 计算统计特征
+        # 计算统计特征（只保留平均值，移除标准差以减少过拟合）
         if sentiment_scores:
-            # 积极情感的平均值和标准差
+            # 积极情感的平均值
             if positive_scores:
                 features['avg_sentiment_positive'] = statistics.mean(positive_scores)
-                features['std_sentiment_positive'] = statistics.stdev(positive_scores) if len(positive_scores) > 1 else 0.0
             else:
                 features['avg_sentiment_positive'] = 0.0
-                features['std_sentiment_positive'] = 0.0
             
-            # 消极情感的平均值和标准差
+            # 消极情感的平均值
             if negative_scores:
                 features['avg_sentiment_negative'] = statistics.mean(negative_scores)
-                features['std_sentiment_negative'] = statistics.stdev(negative_scores) if len(negative_scores) > 1 else 0.0
             else:
                 features['avg_sentiment_negative'] = 0.0
-                features['std_sentiment_negative'] = 0.0
         else:
             features['avg_sentiment_positive'] = 0.0
-            features['std_sentiment_positive'] = 0.0
             features['avg_sentiment_negative'] = 0.0
-            features['std_sentiment_negative'] = 0.0
         
         return features
     
@@ -542,23 +517,13 @@ class FeatureExtractor:
         """返回默认的原创帖子特征值"""
         return {
             'avg_text_length_original': 0,
-            'std_text_length_original': 0,
             'avg_punctuation_count_original': 0,
             'std_punctuation_count_original': 0,
             'avg_pic_count_original': 0,
-            'std_pic_count_original': 0,
             'avg_video_count_original': 0,
             'std_video_count_original': 0,
-            'avg_link_count_original': 0,
-            'std_link_count_original': 0,
-            'avg_at_count_original': 0,
-            'std_at_count_original': 0,
-            'avg_hash_count_original': 0,
-            'std_hash_count_original': 0,
             'avg_sentiment_positive': 0.0,
-            'std_sentiment_positive': 0.0,
             'avg_sentiment_negative': 0.0,
-            'std_sentiment_negative': 0.0,
         }
     
     def extract_features(self, user_id: str) -> Dict[str, Any]:
