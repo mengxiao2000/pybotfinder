@@ -21,7 +21,7 @@ if requirements_file.exists():
 
 setup(
     name="pybotfinder",
-    version="0.2.0",
+    version="0.2.1",
     author="Xiao MENG",
     author_email="xiaomeng7-c@my.cityu.edu.hk",
     description="微博社交机器人检测工具包 - Weibo Social Bot Detection Toolkit",
