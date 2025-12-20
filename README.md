@@ -59,16 +59,16 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 
 - **机器人样本** (3845个): 来自 `bot.txt`，包含已标注的机器人账号
 - **人类样本** (4579个): 来自以下文件：
-  - `human.txt` (2270个): 普通用户账号
-  - `government.txt` (597个): 政府机构账号
-  - `influencer.txt` (931个): 影响者账号
-  - `media.txt` (781个): 媒体账号
+  - `human.txt` (2270个): 普通用户账号，通过实时推文中以常用虚词为搜索词采集
+  - `government.txt` (597个): 政府机构账号，通过微博政务榜单采集
+  - `influencer.txt` (931个): 影响者账号，通过微博V影响力榜单采集
+  - `media.txt` (781个): 媒体账号，以“新闻”为关键词搜索相关的认证账号采集
 
 **总样本数**: 8424个用户
 
 ## 训练特征
 
-模型使用49个特征进行训练，包括：
+模型使用46个特征进行训练，包括：
 
 ### Profile-level特征 (24个)
 
@@ -98,9 +98,9 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
    - `statuses_count`: 微博总数
 
 4. **互动统计** (3个):
-   - `comments_count`: 评论数（Profile中初始化为0，实际在Posts中计算）
-   - `likes_count`: 点赞数（Profile中初始化为0，实际在Posts中计算）
-   - `reposts_count`: 转发数（Profile中初始化为0，实际在Posts中计算）
+   - `comments_count`: 总评论数（从profile的status_total_counter字段获取）
+   - `likes_count`: 总点赞数（从profile的status_total_counter字段获取）
+   - `reposts_count`: 总转发数（从profile的status_total_counter字段获取）
 
 5. **视觉特征** (2个):
    - `is_default_avatar`: 是否使用默认头像（1=是，0=否）
@@ -109,7 +109,7 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 ### Posts-level特征 (25个)
 
 1. **基本统计** (2个):
-   - `posts_count`: 帖子数量
+   - `posts_count`: 收集到的帖子数量
    - `original_ratio`: 原创微博比例
 
 2. **原创内容特征** (14个，均值和标准差):
@@ -134,33 +134,30 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
    - `peak_hourly_posts`: 峰值小时发帖数
    - `peak_daily_posts`: 峰值日发帖数
 
-4. **其他特征** (5个):
+4. **其他特征** (2个):
    - `location_ratio`: 包含地理位置的微博比例
    - `repost_user_entropy`: 转发用户信息熵
-   - `total_comments`: 总评论数
-   - `total_likes`: 总点赞数
-   - `total_reposts`: 总转发数
 
 ## 模型评估
 
 ### 整体性能
 
-- **准确率 (Accuracy)**: 98.99%
-- **交叉验证F1分数**: 0.9844 (±0.0035)
-- **测试集F1分数 (宏平均)**: 0.9898
-- **测试集F1分数 (加权平均)**: 0.9899
+- **准确率 (Accuracy)**: 99.17%
+- **交叉验证F1分数**: 0.9872 (±0.0036)
+- **测试集F1分数 (宏平均)**: 0.9916
+- **测试集F1分数 (加权平均)**: 0.9917
 
 ### 各类别性能
 
 **人类 (类别0)**:
-- 精确率 (Precision): 0.9839
+- 精确率 (Precision): 0.9870
 - 召回率 (Recall): 0.9978
-- F1-score: 0.9908
+- F1-score: 0.9924
 
 **机器人 (类别1)**:
 - 精确率 (Precision): 0.9974
-- 召回率 (Recall): 0.9805
-- F1-score: 0.9889
+- 召回率 (Recall): 0.9844
+- F1-score: 0.9908
 
 ## 注意事项
 

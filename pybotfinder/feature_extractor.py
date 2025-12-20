@@ -130,11 +130,18 @@ class FeatureExtractor:
             statuses_count = self._safe_int(user.get('statuses_count', 0))
             features['statuses_count'] = statuses_count
             
-            # 评论、点赞、转发数（从统计信息中获取，如果存在）
-            # 注意：这些可能不在profile中，需要从posts聚合
-            features['comments_count'] = 0  # 将在posts特征中计算
-            features['likes_count'] = 0  # 将在posts特征中计算
-            features['reposts_count'] = 0  # 将在posts特征中计算
+            # 评论、点赞、转发数（从status_total_counter字段获取）
+            status_total_counter = user.get('status_total_counter', {})
+            if status_total_counter and isinstance(status_total_counter, dict):
+                # 从status_total_counter提取总数
+                features['comments_count'] = self._safe_int(status_total_counter.get('comment_cnt', 0))
+                features['likes_count'] = self._safe_int(status_total_counter.get('like_cnt', 0))
+                features['reposts_count'] = self._safe_int(status_total_counter.get('repost_cnt', 0))
+            else:
+                # 如果没有status_total_counter，设为0
+                features['comments_count'] = 0
+                features['likes_count'] = 0
+                features['reposts_count'] = 0
             
             # 头像和封面图是否默认
             profile_image_url = str(user.get('profile_image_url', '') or user.get('avatar_hd', '') or '')
@@ -206,13 +213,8 @@ class FeatureExtractor:
             repost_entropy = self._calculate_repost_user_entropy(repost_posts)
             features['repost_user_entropy'] = repost_entropy
             
-            # 聚合评论、点赞、转发数
-            total_comments = sum(self._safe_int(p.get('comments_count', 0)) for p in posts_data if p is not None and isinstance(p, dict))
-            total_likes = sum(self._safe_int(p.get('attitudes_count', 0)) for p in posts_data if p is not None and isinstance(p, dict))
-            total_reposts = sum(self._safe_int(p.get('reposts_count', 0)) for p in posts_data if p is not None and isinstance(p, dict))
-            features['total_comments'] = total_comments
-            features['total_likes'] = total_likes
-            features['total_reposts'] = total_reposts
+            # 注意：不再从posts聚合转评赞数据，避免标签泄漏
+            # 转评赞数据应从profile的status_total_counter字段获取
             
         except Exception as e:
             import traceback
@@ -398,6 +400,8 @@ class FeatureExtractor:
             return 0
         try:
             if isinstance(value, str):
+                # 移除逗号（处理如 "29,099,585" 的格式）
+                value = value.replace(',', '')
                 # 处理带单位的数字，如 "332.6万"
                 if '万' in value:
                     num = float(value.replace('万', '')) * 10000
@@ -452,9 +456,7 @@ class FeatureExtractor:
             'peak_daily_posts': 0,
             'location_ratio': 0,
             'repost_user_entropy': 0,
-            'total_comments': 0,
-            'total_likes': 0,
-            'total_reposts': 0,
+            # 注意：不再包含total_comments/likes/reposts，这些应从profile的status_total_counter获取
             **default_original
         }
     
