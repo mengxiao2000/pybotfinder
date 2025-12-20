@@ -1,8 +1,14 @@
+<div align="center">
+
+![pybotfinder Logo](logo.png)
+
 # pybotfinder
 
 微博社交机器人检测工具包 - Weibo Social Bot Detection Toolkit
 
 基于随机森林的微博社交机器人检测系统，提供开箱即用的预测功能。
+
+</div>
 
 ## 安装
 
