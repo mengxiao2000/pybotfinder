@@ -21,15 +21,21 @@ logger = logging.getLogger(__name__)
 class BotPredictor:
     """机器人检测预测器"""
     
-    def __init__(self, model_path: str = "bot_detection_model.pkl",
+    def __init__(self, model_path: Optional[str] = None,
                  cookie: Optional[str] = None):
         """
         初始化预测器
         
         Args:
-            model_path: 训练好的模型文件路径
+            model_path: 训练好的模型文件路径。如果为None，使用包内默认模型
             cookie: 微博Cookie（用于数据采集）
         """
+        # 如果没有指定模型路径，使用包内默认模型
+        if model_path is None:
+            # 获取包内模型文件的路径
+            package_dir = Path(__file__).parent
+            model_path = package_dir / "bot_detection_model.pkl"
+        
         self.model_path = Path(model_path)
         self.cookie = cookie
         self.model = None
@@ -47,7 +53,10 @@ class BotPredictor:
     def _load_model(self):
         """加载训练好的模型"""
         if not self.model_path.exists():
-            raise FileNotFoundError(f"模型文件不存在: {self.model_path}")
+            raise FileNotFoundError(
+                f"模型文件不存在: {self.model_path}\n"
+                "请确保模型文件已正确安装，或使用 model_path 参数指定模型路径。"
+            )
         
         logger.info(f"加载模型: {self.model_path}")
         data = joblib.load(self.model_path)

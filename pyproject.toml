@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pybotfinder"
-version = "0.1.0"
+version = "0.1.1"
 description = "微博社交机器人检测工具包 - Weibo Social Bot Detection Toolkit"
 readme = "README.md"
 requires-python = ">=3.8"
