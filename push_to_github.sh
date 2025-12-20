@@ -11,7 +11,14 @@ git remote -v
 
 # 使用 token 配置远程 URL（临时）
 echo "🔐 配置认证..."
-git remote set-url origin https://mengxiao2000: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@github.com/mengxiao2000/pybotfinder.git
+echo "⚠️  请先设置环境变量 GITHUB_TOKEN，或编辑此脚本替换 YOUR_TOKEN"
+if [ -z "$GITHUB_TOKEN" ]; then
+    echo "❌ 错误：未设置 GITHUB_TOKEN 环境变量"
+    echo "   请运行：export GITHUB_TOKEN=your_token_here"
+    echo "   或编辑此脚本，将 YOUR_TOKEN 替换为你的实际 token"
+    exit 1
+fi
+git remote set-url origin https://mengxiao2000:${GITHUB_TOKEN}@github.com/mengxiao2000/pybotfinder.git
 
 # 推送主分支
 echo "📤 推送主分支..."

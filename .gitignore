@@ -75,3 +75,10 @@ Thumbs.db
 
 # PyPI credentials (包含敏感信息)
 .pypirc
+
+# GitHub tokens and secrets
+*_token*
+*_secret*
+*.key
+.env
+.env.local

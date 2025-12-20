@@ -28,7 +28,8 @@
 cd /Users/mengxiao/Documents/微博/pybotfinder
 
 # 方法1：使用 token 在 URL 中（一次性）
-git remote set-url origin https://mengxiao2000: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@github.com/mengxiao2000/pybotfinder.git
+# ⚠️ 注意：请将 YOUR_TOKEN 替换为你的实际 Personal Access Token
+git remote set-url origin https://mengxiao2000:YOUR_TOKEN@github.com/mengxiao2000/pybotfinder.git
 git push -u origin main
 git push origin v0.1.0
 
