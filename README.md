@@ -1,6 +1,6 @@
 <div align="center">
 
-![pybotfinder Logo](logo.png)
+<img src="logo.png" alt="pybotfinder Logo" width="300">
 
 # pybotfinder
 
