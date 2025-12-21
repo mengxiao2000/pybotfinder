@@ -63,18 +63,21 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 
 模型基于以下数据训练：
 
-- **机器人样本** (3845个): 来自 `bot.txt`，主要为自动化营销账号和少部分LLM驱动的机器人账号
-- **人类样本** (4579个): 来自以下文件：
-  - `human.txt` (2270个): 普通用户账号，通过实时推文中以常用虚词为搜索词采集
+- **机器人样本** (4480个账号ID): 来自 `bot.txt`，主要为自动化营销账号和少部分LLM驱动的机器人账号
+- **人类样本** (4578个账号ID): 来自以下文件：
+  - `human.txt` (2269个): 普通用户账号，通过实时推文中以常用虚词为搜索词采集
   - `government.txt` (597个): 政府机构账号，通过微博政务榜单采集
   - `influencer.txt` (931个): 影响者账号，通过微博V影响力榜单采集
-  - `media.txt` (781个): 媒体账号，以“新闻”为关键词搜索相关的认证账号采集
+  - `media.txt` (781个): 媒体账号，以"新闻"为关键词搜索相关的认证账号采集
 
-**总样本数**: 8424个用户
+**标签分布说明**:
+- 由于部分账号在数据采集时可能已被封禁、删除或设置为私密，实际成功提取特征并用于训练的样本数可能少于账号ID总数
+- 最终用于训练的样本数：1812个（测试集），训练集样本数根据交叉验证划分确定
+- 模型训练时会自动过滤无法采集到profile数据的账号
 
 ## 训练特征
 
-模型使用26个特征进行训练，包括：
+模型使用33个特征进行训练，包括：
 
 ### Profile-level特征 (10个)
 
@@ -96,7 +99,7 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 4. **视觉特征** (1个):
    - `is_default_avatar`: 是否使用默认头像（1=是，0=否）
 
-### Posts-level特征 (16个)
+### Posts-level特征 (23个)
 
 1. **基本统计** (2个):
    - `posts_count`: 收集到的帖子数量
@@ -110,17 +113,26 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
    - `avg_video_count_original`: 平均视频数
    - `std_video_count_original`: 视频数标准差
 
-3. **时间特征** (4个):
+3. **原创互动特征** (6个，均值和标准差):
+   - `avg_likes_original`: 原创微博平均点赞数
+   - `std_likes_original`: 原创微博点赞数标准差
+   - `avg_reposts_original`: 原创微博平均转发数
+   - `std_reposts_original`: 原创微博转发数标准差
+   - `avg_comments_original`: 原创微博平均评论数
+   - `std_comments_original`: 原创微博评论数标准差
+
+4. **时间特征** (5个):
    - `avg_post_interval`: 平均发帖间隔（秒）
    - `std_post_interval`: 发帖间隔标准差（秒）
    - `peak_hourly_posts`: 峰值小时发帖数
    - `peak_daily_posts`: 峰值日发帖数
+   - `avg_daily_posts`: 平均每天发帖数量
 
-4. **情感特征** (2个，基于SnowNLP，只保留平均值):
+5. **情感特征** (2个，基于SnowNLP，只保留平均值):
    - `avg_sentiment_positive`: 积极情感平均值
    - `avg_sentiment_negative`: 消极情感平均值
 
-5. **其他特征** (2个):
+6. **其他特征** (2个):
    - `location_ratio`: 包含地理位置的微博比例
    - `repost_user_entropy`: 转发用户信息熵
 
@@ -128,22 +140,22 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 
 ### 整体性能
 
-- **准确率 (Accuracy)**: 99.05%
-- **交叉验证F1分数**: 0.9834 (±0.0014)
-- **测试集F1分数 (宏平均)**: 0.9898
-- **测试集F1分数 (加权平均)**: 0.9899
+- **准确率 (Accuracy)**: 98.29%
+- **交叉验证F1分数**: 0.9734 (±0.0047)
+- **测试集F1分数 (宏平均)**: 0.9829
+- **测试集F1分数 (加权平均)**: 0.9829
 
 ### 各类别性能
 
 **人类 (类别0)**:
-- 精确率 (Precision): 0.9849
-- 召回率 (Recall): 0.9989
-- F1-score: 0.9919
+- 精确率 (Precision): 0.9702
+- 召回率 (Recall): 0.9967
+- F1-score: 0.9833
 
 **机器人 (类别1)**:
-- 精确率 (Precision): 0.9967
-- 召回率 (Recall): 0.9818
-- F1-score: 0.9892
+- 精确率 (Precision): 0.9966
+- 召回率 (Recall): 0.9688
+- F1-score: 0.9825
 
 ## 注意事项
 

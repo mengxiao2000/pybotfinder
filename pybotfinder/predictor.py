@@ -251,12 +251,21 @@ class BotPredictor:
         # 1. 采集数据
         profile_data, posts_data = self.collect_user_data(user_id, max_posts=max_posts)
         
-        if profile_data is None and (posts_data is None or len(posts_data) == 0):
+        # 检查数据采集情况
+        if profile_data is None:
+            logger.error(f"用户 {user_id} 的profile数据采集失败，无法进行预测")
             return {
                 'user_id': user_id,
                 'success': False,
-                'error': '数据采集失败，无法进行预测'
+                'error': 'Profile数据采集失败，无法进行预测。可能原因：账号不存在、被封禁或Cookie无效。'
             }
+        
+        # posts数据可以为空（用户可能没有发过帖子），这是正常情况
+        if posts_data is None:
+            posts_data = []  # 设置为空列表，让特征提取器使用默认值
+            logger.warning(f"用户 {user_id} 的posts数据采集失败，将使用默认特征值")
+        elif len(posts_data) == 0:
+            logger.info(f"用户 {user_id} 没有发布任何帖子，将使用默认特征值")
         
         # 2. 提取特征
         features = self.extract_features(profile_data, posts_data)

@@ -217,9 +217,10 @@ class FeatureExtractor:
         punctuation_counts = []
         pic_counts = []
         video_counts = []
-        link_counts = []
-        at_counts = []
-        hash_counts = []
+        # 互动数据
+        likes_counts = []
+        reposts_counts = []
+        comments_counts = []
         
         for post in original_posts:
             # 获取文本内容
@@ -240,17 +241,14 @@ class FeatureExtractor:
             has_video = 1 if post.get('page_info') or post.get('video') or post.get('media_info') else 0
             video_counts.append(has_video)
             
-            # 链接数量
-            link_count = len(re.findall(r'http[s]?://', text))
-            link_counts.append(link_count)
+            # 点赞、转发、评论数
+            likes_count = self._safe_int(post.get('attitudes_count', 0) or post.get('like_count', 0))
+            reposts_count = self._safe_int(post.get('reposts_count', 0) or post.get('repost_count', 0))
+            comments_count = self._safe_int(post.get('comments_count', 0) or post.get('comment_count', 0))
             
-            # @数量
-            at_count = len(re.findall(r'@\w+', text))
-            at_counts.append(at_count)
-            
-            # #数量
-            hash_count = len(re.findall(r'#.*?#', text))
-            hash_counts.append(hash_count)
+            likes_counts.append(likes_count)
+            reposts_counts.append(reposts_count)
+            comments_counts.append(comments_count)
         
         # 计算均值和标准差（只保留重要的特征）
         features['avg_text_length_original'] = statistics.mean(text_lengths) if text_lengths else 0
@@ -262,6 +260,16 @@ class FeatureExtractor:
         
         features['avg_video_count_original'] = statistics.mean(video_counts) if video_counts else 0
         features['std_video_count_original'] = statistics.stdev(video_counts) if len(video_counts) > 1 else 0
+        
+        # 互动数据的均值和标准差
+        features['avg_likes_original'] = statistics.mean(likes_counts) if likes_counts else 0
+        features['std_likes_original'] = statistics.stdev(likes_counts) if len(likes_counts) > 1 else 0
+        
+        features['avg_reposts_original'] = statistics.mean(reposts_counts) if reposts_counts else 0
+        features['std_reposts_original'] = statistics.stdev(reposts_counts) if len(reposts_counts) > 1 else 0
+        
+        features['avg_comments_original'] = statistics.mean(comments_counts) if comments_counts else 0
+        features['std_comments_original'] = statistics.stdev(comments_counts) if len(comments_counts) > 1 else 0
         
         return features
     
@@ -293,6 +301,7 @@ class FeatureExtractor:
             features['std_post_interval'] = 0
             features['peak_hourly_posts'] = len(timestamps)
             features['peak_daily_posts'] = len(timestamps)
+            features['avg_daily_posts'] = len(timestamps)  # 如果只有1个或0个帖子，平均每天发帖数就是帖子数
         else:
             # 计算时间间隔
             intervals = []
@@ -318,6 +327,14 @@ class FeatureExtractor:
             
             features['peak_hourly_posts'] = max(hourly_counts.values()) if hourly_counts else 0
             features['peak_daily_posts'] = max(daily_counts.values()) if daily_counts else 0
+            
+            # 计算平均每天发帖数量
+            if daily_counts:
+                unique_days = len(daily_counts)
+                total_posts = sum(daily_counts.values())
+                features['avg_daily_posts'] = total_posts / unique_days if unique_days > 0 else 0
+            else:
+                features['avg_daily_posts'] = 0
         
         return features
     
@@ -485,6 +502,7 @@ class FeatureExtractor:
             'std_post_interval': 0,
             'peak_hourly_posts': 0,
             'peak_daily_posts': 0,
+            'avg_daily_posts': 0,
             'location_ratio': 0,
             'repost_user_entropy': 0,
             # 注意：不再包含total_comments/likes/reposts，这些应从profile的status_total_counter获取
@@ -500,6 +518,12 @@ class FeatureExtractor:
             'avg_pic_count_original': 0,
             'avg_video_count_original': 0,
             'std_video_count_original': 0,
+            'avg_likes_original': 0,
+            'std_likes_original': 0,
+            'avg_reposts_original': 0,
+            'std_reposts_original': 0,
+            'avg_comments_original': 0,
+            'std_comments_original': 0,
             'avg_sentiment_positive': 0.0,
             'avg_sentiment_negative': 0.0,
         }
