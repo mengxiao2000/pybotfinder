@@ -212,10 +212,5 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 
 ## 许可证
 
-本项目采用 **MIT 许可证（仅限非商业用途）**。详见 [LICENSE](LICENSE) 文件。
-
-**重要提示**：
-- 本软件仅限**非商业用途**使用
-- **禁止商业使用**，包括但不限于在商业产品、服务中使用或用于商业盈利
-- 如需商业使用，请联系作者获取授权：xiaomeng7-c@my.cityu.edu.hk
+本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
 
