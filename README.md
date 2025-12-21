@@ -1,6 +1,6 @@
 # pybotfinder
 
-<img src="logo.png" width="150" align="right"/>
+<img src="logo.png" width="200" align="right"/>
 
 pybotfinder 是一个面向计算社会科学研究的 Python 包，
 用于对微博（Weibo）用户进行社交机器人检测。
