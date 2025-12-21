@@ -73,89 +73,112 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 **标签分布说明**:
 - 由于部分账号在数据采集时可能已被封禁、删除或设置为私密，实际成功提取特征并用于训练的样本数可能少于账号ID总数
 - 实际成功提取特征的样本总数：约9060个
-- 数据集划分：训练集约7248个（80%），测试集1812个（20%）
-- 模型训练时会自动过滤无法采集到profile数据的账号
+- 数据集划分：训练集7248个（80%），测试集1812个（20%）
 
 ## 训练特征
 
-模型使用33个特征进行训练，包括：
+模型使用46个特征进行训练，包括：
 
 ### Profile-level特征 (10个)
 
-1. **昵称特征** (2个):
-   - `screen_name_length`: 昵称长度
-   - `screen_name_digit_count`: 昵称中数字数量
+| 特征名称 | 描述 | 类型 |
+|---------|------|------|
+| `screen_name_length` | 昵称长度 | 数值 |
+| `screen_name_digit_count` | 昵称中数字数量 | 数值 |
+| `description_length` | 描述长度 | 数值 |
+| `description_has_sensitive_word` | 描述中是否包含敏感词 | 二值 (0/1) |
+| `gender_n` | 性别（未知=1，其他=0） | 二值 (0/1) |
+| `followers_count` | 粉丝数 | 数值 |
+| `friends_count` | 关注数 | 数值 |
+| `followers_friends_ratio` | 粉丝/关注比例 | 数值 |
+| `statuses_count` | 微博总数 | 数值 |
+| `is_default_avatar` | 是否使用默认头像 | 二值 (0/1) |
 
-2. **描述特征** (2个):
-   - `description_length`: 描述长度
-   - `description_has_sensitive_word`: 描述中是否包含敏感词（1=是，0=否）
+### Posts-level特征 (36个)
 
-3. **基本统计** (5个):
-   - `gender_n`: 性别（未知=1，其他=0）
-   - `followers_count`: 粉丝数
-   - `friends_count`: 关注数
-   - `followers_friends_ratio`: 粉丝/关注比例
-   - `statuses_count`: 微博总数
+#### 基本统计 (2个)
 
-4. **视觉特征** (1个):
-   - `is_default_avatar`: 是否使用默认头像（1=是，0=否）
+| 特征名称 | 描述 | 类型 |
+|---------|------|------|
+| `posts_count` | 收集到的帖子数量 | 数值 |
+| `original_ratio` | 原创微博比例 | 数值 (0-1) |
 
-### Posts-level特征 (23个)
+#### 原创内容特征 (7个)
 
-1. **基本统计** (2个):
-   - `posts_count`: 收集到的帖子数量
-   - `original_ratio`: 原创微博比例
+| 特征名称 | 描述 | 类型 |
+|---------|------|------|
+| `avg_text_length_original` | 平均文本长度 | 数值 |
+| `avg_punctuation_count_original` | 平均标点符号数 | 数值 |
+| `std_punctuation_count_original` | 标点符号数标准差 | 数值 |
+| `avg_pic_count_original` | 平均图片数 | 数值 |
+| `avg_video_count_original` | 平均视频数 | 数值 |
+| `std_video_count_original` | 视频数标准差 | 数值 |
+| `vocabulary_diversity_original` | 原创内容词汇多样性（unique词语/总词语） | 数值 (0-1) |
 
-2. **原创内容特征** (6个，保留重要的均值和标准差):
-   - `avg_text_length_original`: 平均文本长度
-   - `avg_punctuation_count_original`: 平均标点符号数
-   - `std_punctuation_count_original`: 标点符号数标准差
-   - `avg_pic_count_original`: 平均图片数
-   - `avg_video_count_original`: 平均视频数
-   - `std_video_count_original`: 视频数标准差
+#### 原创互动特征 (6个)
 
-3. **原创互动特征** (6个，均值和标准差):
-   - `avg_likes_original`: 原创微博平均点赞数
-   - `std_likes_original`: 原创微博点赞数标准差
-   - `avg_reposts_original`: 原创微博平均转发数
-   - `std_reposts_original`: 原创微博转发数标准差
-   - `avg_comments_original`: 原创微博平均评论数
-   - `std_comments_original`: 原创微博评论数标准差
+| 特征名称 | 描述 | 类型 |
+|---------|------|------|
+| `avg_likes_original` | 原创微博平均点赞数 | 数值 |
+| `std_likes_original` | 原创微博点赞数标准差 | 数值 |
+| `avg_reposts_original` | 原创微博平均转发数 | 数值 |
+| `std_reposts_original` | 原创微博转发数标准差 | 数值 |
+| `avg_comments_original` | 原创微博平均评论数 | 数值 |
+| `std_comments_original` | 原创微博评论数标准差 | 数值 |
 
-4. **时间特征** (5个):
-   - `avg_post_interval`: 平均发帖间隔（秒）
-   - `std_post_interval`: 发帖间隔标准差（秒）
-   - `peak_hourly_posts`: 峰值小时发帖数
-   - `peak_daily_posts`: 峰值日发帖数
-   - `avg_daily_posts`: 平均每天发帖数量
+#### 时间特征 (7个)
 
-5. **情感特征** (2个，基于SnowNLP，只保留平均值):
-   - `avg_sentiment_positive`: 积极情感平均值
-   - `avg_sentiment_negative`: 消极情感平均值
+| 特征名称 | 描述 | 类型 |
+|---------|------|------|
+| `avg_post_interval` | 平均发帖间隔（秒） | 数值 |
+| `std_post_interval` | 发帖间隔标准差（秒） | 数值 |
+| `peak_hourly_posts` | 峰值小时发帖数 | 数值 |
+| `peak_daily_posts` | 峰值日发帖数 | 数值 |
+| `avg_daily_posts` | 平均每天发帖数量 | 数值 |
+| `std_daily_posts` | 每天发帖数量标准差 | 数值 |
+| `hour_distribution_mean` | 24小时分布均值 | 数值 (0-23) |
+| `hour_distribution_std` | 24小时分布标准差 | 数值 |
+| `hour_distribution_kurtosis` | 24小时分布峰度 | 数值 |
+| `hour_distribution_skewness` | 24小时分布偏度 | 数值 |
 
-6. **其他特征** (2个):
-   - `location_ratio`: 包含地理位置的微博比例
-   - `repost_user_entropy`: 转发用户信息熵
+#### 情感特征 (8个，基于SnowNLP，原创和转发分开计算)
+
+| 特征名称 | 描述 | 类型 |
+|---------|------|------|
+| `avg_sentiment_positive_original` | 原创帖子积极情感平均值 | 数值 (0-1) |
+| `std_sentiment_positive_original` | 原创帖子积极情感标准差 | 数值 |
+| `avg_sentiment_negative_original` | 原创帖子消极情感平均值 | 数值 (0-1) |
+| `std_sentiment_negative_original` | 原创帖子消极情感标准差 | 数值 |
+| `avg_sentiment_positive_repost` | 转发评价积极情感平均值 | 数值 (0-1) |
+| `std_sentiment_positive_repost` | 转发评价积极情感标准差 | 数值 |
+| `avg_sentiment_negative_repost` | 转发评价消极情感平均值 | 数值 (0-1) |
+| `std_sentiment_negative_repost` | 转发评价消极情感标准差 | 数值 |
+
+#### 其他特征 (3个)
+
+| 特征名称 | 描述 | 类型 |
+|---------|------|------|
+| `location_ratio` | 包含地理位置的微博比例 | 数值 (0-1) |
+| `repost_user_entropy` | 转发用户信息熵 | 数值 |
+| `vocabulary_diversity_repost` | 转发评价词汇多样性（unique词语/总词语） | 数值 (0-1) |
 
 ## 模型评估
 
 ### 整体性能
 
-- **准确率 (Accuracy)**: 98.29%
-- **测试集F1分数 (宏平均)**: 0.9829
-- **测试集F1分数 (加权平均)**: 0.9829
+| 指标 | 数值 |
+|------|------|
+| **准确率 (Accuracy)** | 98.29% |
+| **交叉验证F1分数** | 0.9732 (±0.0030) |
+| **测试集F1分数 (宏平均)** | 0.9829 |
+| **测试集F1分数 (加权平均)** | 0.9829 |
 
 ### 各类别性能
 
-**人类 (类别0)**:
-- 精确率 (Precision): 0.9702
-- 召回率 (Recall): 0.9967
-- F1-score: 0.9833
-
-**机器人 (类别1)**:
-- 精确率 (Precision): 0.9966
-- 召回率 (Recall): 0.9688
-- F1-score: 0.9825
+| 类别 | 精确率 (Precision) | 召回率 (Recall) | F1-score |
+|------|-------------------|----------------|----------|
+| **人类 (类别0)** | 0.9702 | 0.9967 | 0.9833 |
+| **机器人 (类别1)** | 0.9966 | 0.9688 | 0.9825 |
 
 ## 注意事项
 
@@ -189,5 +212,10 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 
 ## 许可证
 
-本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
+本项目采用 **MIT 许可证（仅限非商业用途）**。详见 [LICENSE](LICENSE) 文件。
+
+**重要提示**：
+- 本软件仅限**非商业用途**使用
+- **禁止商业使用**，包括但不限于在商业产品、服务中使用或用于商业盈利
+- 如需商业使用，请联系作者获取授权：xiaomeng7-c@my.cityu.edu.hk
 

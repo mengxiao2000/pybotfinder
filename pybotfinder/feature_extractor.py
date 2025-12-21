@@ -12,6 +12,13 @@ from datetime import datetime
 import statistics
 import logging
 
+try:
+    from scipy import stats
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
+    logger.warning("scipy未安装，峰度和偏度特征将被跳过。请运行: pip install scipy")
+
 logger = logging.getLogger(__name__)
 
 # 尝试导入SnowNLP
@@ -196,9 +203,13 @@ class FeatureExtractor:
             repost_entropy = self._calculate_repost_user_entropy(repost_posts)
             features['repost_user_entropy'] = repost_entropy
             
-            # 情感特征（基于SnowNLP）
-            sentiment_features = self._extract_sentiment_features(original_posts)
+            # 情感特征（基于SnowNLP）- 原创和转发分开计算
+            sentiment_features = self._extract_sentiment_features(original_posts, repost_posts)
             features.update(sentiment_features)
+            
+            # 词汇多样性特征
+            diversity_features = self._extract_vocabulary_diversity_features(original_posts, repost_posts)
+            features.update(diversity_features)
             
         except Exception as e:
             import traceback
@@ -271,6 +282,116 @@ class FeatureExtractor:
         features['avg_comments_original'] = statistics.mean(comments_counts) if comments_counts else 0
         features['std_comments_original'] = statistics.stdev(comments_counts) if len(comments_counts) > 1 else 0
         
+        # 词汇多样性：计算原创内容的词汇多样性
+        original_texts = []
+        for post in original_posts:
+            text = str(post.get('text_raw', '') or post.get('text', '') or '')
+            text = re.sub(r'<[^>]+>', '', text)
+            text = re.sub(r'http[s]?://\S+', '', text)
+            text = re.sub(r'@\w+', '', text)
+            text = re.sub(r'#.*?#', '', text)
+            text = text.strip()
+            if text:
+                original_texts.append(text)
+        
+        if original_texts:
+            # 将所有原创文本拼接
+            combined_text = ' '.join(original_texts)
+            features['vocabulary_diversity_original'] = self._calculate_vocabulary_diversity(combined_text)
+        else:
+            features['vocabulary_diversity_original'] = 0.0
+        
+        return features
+    
+    def _calculate_vocabulary_diversity(self, text: str) -> float:
+        """计算词汇多样性：unique词语数 / 总词语数"""
+        if not text or len(text.strip()) == 0:
+            return 0.0
+        
+        # 使用正则表达式提取中文词语和英文单词
+        # 中文：连续的中文字符作为一个词
+        # 英文：连续的字母作为一个词
+        words = re.findall(r'[\u4e00-\u9fa5]+|[a-zA-Z]+', text)
+        
+        if not words:
+            return 0.0
+        
+        total_words = len(words)
+        unique_words = len(set(words))
+        
+        # 词汇多样性 = unique词语数 / 总词语数
+        diversity = unique_words / total_words if total_words > 0 else 0.0
+        
+        return diversity
+    
+    def _extract_vocabulary_diversity_features(self, original_posts: List[Dict[str, Any]], 
+                                               repost_posts: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """提取词汇多样性特征（原创和转发评价分开）"""
+        features = {}
+        
+        # 原创内容的词汇多样性（已经在_extract_original_posts_features中计算）
+        # 这里只需要计算转发评价的词汇多样性
+        
+        # 提取所有转发评价文本
+        repost_comment_texts = []
+        for post in repost_posts:
+            comment_text = self._extract_repost_comment_text(post)
+            if comment_text:
+                repost_comment_texts.append(comment_text)
+        
+        if repost_comment_texts:
+            # 将所有转发评价文本拼接
+            combined_repost_text = ' '.join(repost_comment_texts)
+            features['vocabulary_diversity_repost'] = self._calculate_vocabulary_diversity(combined_repost_text)
+        else:
+            features['vocabulary_diversity_repost'] = 0.0
+        
+        return features
+    
+    def _extract_hour_distribution_features(self, timestamps: List[float]) -> Dict[str, Any]:
+        """提取24小时分布的统计特征（均值、标准差、峰度、偏度）"""
+        features = {}
+        
+        if not timestamps:
+            return {
+                'hour_distribution_mean': 0.0,
+                'hour_distribution_std': 0.0,
+                'hour_distribution_kurtosis': 0.0,
+                'hour_distribution_skewness': 0.0,
+            }
+        
+        # 提取每个帖子的发布小时（0-23）
+        hours = []
+        for ts in timestamps:
+            dt = datetime.fromtimestamp(ts)
+            hours.append(dt.hour)
+        
+        if not hours:
+            return {
+                'hour_distribution_mean': 0.0,
+                'hour_distribution_std': 0.0,
+                'hour_distribution_kurtosis': 0.0,
+                'hour_distribution_skewness': 0.0,
+            }
+        
+        # 计算24小时分布（每个小时的发帖数）
+        hour_counts = [0] * 24
+        for hour in hours:
+            hour_counts[hour] += 1
+        
+        # 计算均值、标准差
+        features['hour_distribution_mean'] = statistics.mean(hours) if hours else 0.0
+        features['hour_distribution_std'] = statistics.stdev(hours) if len(hours) > 1 else 0.0
+        
+        # 计算峰度和偏度（需要scipy）
+        if SCIPY_AVAILABLE and len(hours) > 3:
+            # 使用小时分布数据计算峰度和偏度
+            features['hour_distribution_kurtosis'] = float(stats.kurtosis(hour_counts))
+            features['hour_distribution_skewness'] = float(stats.skew(hour_counts))
+        else:
+            features['hour_distribution_kurtosis'] = 0.0
+            features['hour_distribution_skewness'] = 0.0
+        
         return features
     
     def _extract_time_features(self, posts_data: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -302,6 +423,7 @@ class FeatureExtractor:
             features['peak_hourly_posts'] = len(timestamps)
             features['peak_daily_posts'] = len(timestamps)
             features['avg_daily_posts'] = len(timestamps)  # 如果只有1个或0个帖子，平均每天发帖数就是帖子数
+            features['std_daily_posts'] = 0
         else:
             # 计算时间间隔
             intervals = []
@@ -328,13 +450,25 @@ class FeatureExtractor:
             features['peak_hourly_posts'] = max(hourly_counts.values()) if hourly_counts else 0
             features['peak_daily_posts'] = max(daily_counts.values()) if daily_counts else 0
             
-            # 计算平均每天发帖数量
+            # 计算平均每天发帖数量和标准差
             if daily_counts:
-                unique_days = len(daily_counts)
-                total_posts = sum(daily_counts.values())
+                daily_post_counts = list(daily_counts.values())
+                unique_days = len(daily_post_counts)
+                total_posts = sum(daily_post_counts)
                 features['avg_daily_posts'] = total_posts / unique_days if unique_days > 0 else 0
+                features['std_daily_posts'] = statistics.stdev(daily_post_counts) if len(daily_post_counts) > 1 else 0
             else:
                 features['avg_daily_posts'] = 0
+                features['std_daily_posts'] = 0
+            
+            # 周期性变量：24小时分布的统计特征
+            hour_distribution_features = self._extract_hour_distribution_features(timestamps)
+            features.update(hour_distribution_features)
+        
+        # 即使时间戳少，也可以计算小时分布（在if-else之外统一处理）
+        if 'hour_distribution_mean' not in features:
+            hour_distribution_features = self._extract_hour_distribution_features(timestamps)
+            features.update(hour_distribution_features)
         
         return features
     
@@ -384,77 +518,134 @@ class FeatureExtractor:
         
         return entropy
     
-    def _extract_sentiment_features(self, original_posts: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """提取基于SnowNLP的情感特征"""
+    def _extract_sentiment_features(self, original_posts: List[Dict[str, Any]], 
+                                   repost_posts: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """提取基于SnowNLP的情感特征（原创和转发分开计算）"""
         features = {}
         
         if not SNOWNLP_AVAILABLE:
             # 如果SnowNLP不可用，返回默认值
             return {
-                'avg_sentiment_positive': 0.0,
-                'avg_sentiment_negative': 0.0,
+                'avg_sentiment_positive_original': 0.0,
+                'std_sentiment_positive_original': 0.0,
+                'avg_sentiment_negative_original': 0.0,
+                'std_sentiment_negative_original': 0.0,
+                'avg_sentiment_positive_repost': 0.0,
+                'std_sentiment_positive_repost': 0.0,
+                'avg_sentiment_negative_repost': 0.0,
+                'std_sentiment_negative_repost': 0.0,
             }
         
-        if not original_posts:
-            return {
-                'avg_sentiment_positive': 0.0,
-                'avg_sentiment_negative': 0.0,
-            }
-        
-        sentiment_scores = []
-        positive_scores = []
-        negative_scores = []
+        # 处理原创帖子
+        original_positive_scores = []
+        original_negative_scores = []
         
         for post in original_posts:
             if post is None or not isinstance(post, dict):
                 continue
             
-            # 获取文本内容
-            text = str(post.get('text_raw', '') or post.get('text', '') or '')
-            # 清理HTML标签
-            text = re.sub(r'<[^>]+>', '', text)
-            # 移除URL、@、#等
-            text = re.sub(r'http[s]?://\S+', '', text)
-            text = re.sub(r'@\w+', '', text)
-            text = re.sub(r'#.*?#', '', text)
-            text = text.strip()
-            
-            if not text or len(text) < 2:
+            text = self._clean_text_for_sentiment(post)
+            if not text:
                 continue
             
             try:
                 s = SnowNLP(text)
-                # 获取情感倾向（0-1之间，越接近1越积极）
                 sentiment = s.sentiments
-                sentiment_scores.append(sentiment)
                 
-                # 积极情感（>0.5为积极）
                 if sentiment > 0.5:
-                    positive_scores.append(sentiment)
+                    original_positive_scores.append(sentiment)
                 else:
-                    negative_scores.append(1 - sentiment)  # 转换为消极程度
+                    original_negative_scores.append(1 - sentiment)
             except Exception as e:
-                logger.debug(f"情感分析失败: {e}")
+                logger.debug(f"原创帖子情感分析失败: {e}")
                 continue
         
-        # 计算统计特征（只保留平均值，移除标准差以减少过拟合）
-        if sentiment_scores:
-            # 积极情感的平均值
-            if positive_scores:
-                features['avg_sentiment_positive'] = statistics.mean(positive_scores)
-            else:
-                features['avg_sentiment_positive'] = 0.0
+        # 处理转发帖子的用户评价部分
+        repost_positive_scores = []
+        repost_negative_scores = []
+        
+        for post in repost_posts:
+            if post is None or not isinstance(post, dict):
+                continue
             
-            # 消极情感的平均值
-            if negative_scores:
-                features['avg_sentiment_negative'] = statistics.mean(negative_scores)
-            else:
-                features['avg_sentiment_negative'] = 0.0
+            # 获取转发时的用户评价（转发帖子的text_raw中，去掉被转发内容的部分）
+            text = self._extract_repost_comment_text(post)
+            if not text:
+                continue
+            
+            try:
+                s = SnowNLP(text)
+                sentiment = s.sentiments
+                
+                if sentiment > 0.5:
+                    repost_positive_scores.append(sentiment)
+                else:
+                    repost_negative_scores.append(1 - sentiment)
+            except Exception as e:
+                logger.debug(f"转发评价情感分析失败: {e}")
+                continue
+        
+        # 计算原创帖子的情感特征（均值和标准差）
+        if original_positive_scores:
+            features['avg_sentiment_positive_original'] = statistics.mean(original_positive_scores)
+            features['std_sentiment_positive_original'] = statistics.stdev(original_positive_scores) if len(original_positive_scores) > 1 else 0.0
         else:
-            features['avg_sentiment_positive'] = 0.0
-            features['avg_sentiment_negative'] = 0.0
+            features['avg_sentiment_positive_original'] = 0.0
+            features['std_sentiment_positive_original'] = 0.0
+        
+        if original_negative_scores:
+            features['avg_sentiment_negative_original'] = statistics.mean(original_negative_scores)
+            features['std_sentiment_negative_original'] = statistics.stdev(original_negative_scores) if len(original_negative_scores) > 1 else 0.0
+        else:
+            features['avg_sentiment_negative_original'] = 0.0
+            features['std_sentiment_negative_original'] = 0.0
+        
+        # 计算转发评价的情感特征（均值和标准差）
+        if repost_positive_scores:
+            features['avg_sentiment_positive_repost'] = statistics.mean(repost_positive_scores)
+            features['std_sentiment_positive_repost'] = statistics.stdev(repost_positive_scores) if len(repost_positive_scores) > 1 else 0.0
+        else:
+            features['avg_sentiment_positive_repost'] = 0.0
+            features['std_sentiment_positive_repost'] = 0.0
+        
+        if repost_negative_scores:
+            features['avg_sentiment_negative_repost'] = statistics.mean(repost_negative_scores)
+            features['std_sentiment_negative_repost'] = statistics.stdev(repost_negative_scores) if len(repost_negative_scores) > 1 else 0.0
+        else:
+            features['avg_sentiment_negative_repost'] = 0.0
+            features['std_sentiment_negative_repost'] = 0.0
         
         return features
+    
+    def _clean_text_for_sentiment(self, post: Dict[str, Any]) -> str:
+        """清理文本用于情感分析"""
+        text = str(post.get('text_raw', '') or post.get('text', '') or '')
+        # 清理HTML标签
+        text = re.sub(r'<[^>]+>', '', text)
+        # 移除URL、@、#等
+        text = re.sub(r'http[s]?://\S+', '', text)
+        text = re.sub(r'@\w+', '', text)
+        text = re.sub(r'#.*?#', '', text)
+        text = text.strip()
+        return text if len(text) >= 2 else ''
+    
+    def _extract_repost_comment_text(self, post: Dict[str, Any]) -> str:
+        """提取转发时的用户评价文本（去掉被转发内容）"""
+        text = self._clean_text_for_sentiment(post)
+        if not text:
+            return ''
+        
+        # 转发帖子的文本通常包含"//@用户名: 被转发内容"的格式
+        # 我们需要提取"//"之前的部分，即用户的评价
+        # 如果包含"//"，则提取"//"之前的部分；否则整个文本都是评价
+        if '//' in text:
+            comment_part = text.split('//')[0].strip()
+            return comment_part
+        else:
+            # 如果没有"//"，可能整个文本都是评价，或者格式不同
+            # 尝试查找"@"符号，如果存在，可能是"@用户名: 评价"的格式
+            # 这里简化处理，返回整个文本
+            return text
     
     def _safe_int(self, value: Any) -> int:
         """安全转换为整数"""
@@ -503,8 +694,14 @@ class FeatureExtractor:
             'peak_hourly_posts': 0,
             'peak_daily_posts': 0,
             'avg_daily_posts': 0,
+            'std_daily_posts': 0,
             'location_ratio': 0,
             'repost_user_entropy': 0,
+            'vocabulary_diversity_repost': 0.0,
+            'hour_distribution_mean': 0.0,
+            'hour_distribution_std': 0.0,
+            'hour_distribution_kurtosis': 0.0,
+            'hour_distribution_skewness': 0.0,
             # 注意：不再包含total_comments/likes/reposts，这些应从profile的status_total_counter获取
             **default_original
         }
@@ -524,8 +721,15 @@ class FeatureExtractor:
             'std_reposts_original': 0,
             'avg_comments_original': 0,
             'std_comments_original': 0,
-            'avg_sentiment_positive': 0.0,
-            'avg_sentiment_negative': 0.0,
+            'vocabulary_diversity_original': 0.0,
+            'avg_sentiment_positive_original': 0.0,
+            'std_sentiment_positive_original': 0.0,
+            'avg_sentiment_negative_original': 0.0,
+            'std_sentiment_negative_original': 0.0,
+            'avg_sentiment_positive_repost': 0.0,
+            'std_sentiment_positive_repost': 0.0,
+            'avg_sentiment_negative_repost': 0.0,
+            'std_sentiment_negative_repost': 0.0,
         }
     
     def extract_features(self, user_id: str) -> Dict[str, Any]:
