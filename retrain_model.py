@@ -112,13 +112,25 @@ def main():
     logger.info("训练完成！")
     logger.info("="*60)
     logger.info(f"模型文件: {model_output}")
+    
+    # 提取结果
+    cv_results = results.get('cv_results', {})
+    test_results = results.get('test_results', {})
+    
     logger.info(f"\n模型性能:")
-    logger.info(f"  准确率: {results.get('accuracy', 0):.4f}")
-    logger.info(f"  交叉验证F1分数: {results.get('cv_f1_mean', 0):.4f} (±{results.get('cv_f1_std', 0):.4f})")
-    logger.info(f"  测试集F1分数 (宏平均): {results.get('test_f1_macro', 0):.4f}")
-    logger.info(f"  测试集F1分数 (加权平均): {results.get('test_f1_weighted', 0):.4f}")
+    logger.info(f"  准确率: {test_results.get('accuracy', 0):.4f}")
+    
+    cv_scores_mean = cv_results.get('cv_scores_mean', 0)
+    cv_scores_std = cv_results.get('cv_scores_std', 0)
+    logger.info(f"  交叉验证F1分数: {cv_scores_mean:.4f} (±{cv_scores_std:.4f})")
+    
+    f1_scores = test_results.get('f1_score', {})
+    logger.info(f"  测试集F1分数 (宏平均): {f1_scores.get('macro', 0):.4f}")
+    logger.info(f"  测试集F1分数 (加权平均): {f1_scores.get('weighted', 0):.4f}")
+    
     logger.info(f"\n最佳参数:")
-    for key, value in results.get('best_params', {}).items():
+    best_params = cv_results.get('best_params', {})
+    for key, value in best_params.items():
         logger.info(f"  {key}: {value}")
 
 
