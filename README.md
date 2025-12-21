@@ -126,7 +126,7 @@ pybotfinder-predict --user-id 1042567781 --cookie "YOUR_WEIBO_COOKIE"
 | `avg_comments_original` | 原创微博平均评论数 | 数值 |
 | `std_comments_original` | 原创微博评论数标准差 | 数值 |
 
-#### 时间特征 (7个)
+#### 时间特征 (10个)
 
 | 特征名称 | 描述 | 类型 |
 |---------|------|------|
