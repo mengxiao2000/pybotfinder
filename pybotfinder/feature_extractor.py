@@ -732,7 +732,7 @@ class FeatureExtractor:
             'std_sentiment_negative_repost': 0.0,
         }
     
-    def extract_features(self, user_id: str) -> Dict[str, Any]:
+    def extract_features(self, user_id: str) -> Optional[Dict[str, Any]]:
         """
         提取单个用户的完整特征
         
@@ -740,12 +740,25 @@ class FeatureExtractor:
             user_id: 用户ID
             
         Returns:
-            完整的特征字典
+            完整的特征字典，如果profile数据缺失或无效则返回None
         """
         user_data = self.load_user_data(user_id)
         
+        # 如果profile数据缺失，返回None（不包含在训练数据中）
+        if user_data['profile'] is None:
+            logger.warning(f"用户 {user_id} 的profile文件不存在，跳过")
+            return None
+        
         profile_features = self.extract_profile_features(user_data['profile'])
         posts_features = self.extract_posts_features(user_data['posts'])
+        
+        # 检查是否成功提取到有效的profile特征
+        # 如果所有关键profile特征都是默认值（全0），说明profile数据无效，应该跳过
+        key_profile_features = ['followers_count', 'friends_count', 'statuses_count', 'screen_name_length']
+        all_zero = all(profile_features.get(k, 0) == 0 for k in key_profile_features)
+        if all_zero:
+            logger.warning(f"用户 {user_id} 的profile数据无效（无法提取用户信息），跳过")
+            return None
         
         # 合并特征
         all_features = {**profile_features, **posts_features}
@@ -768,7 +781,9 @@ class FeatureExtractor:
         for idx, user_id in enumerate(user_ids, 1):
             try:
                 features = self.extract_features(user_id)
-                features_list.append(features)
+                # 如果返回None（profile数据缺失），跳过该账号
+                if features is not None:
+                    features_list.append(features)
                 if idx % 100 == 0:
                     logger.info(f"已处理 {idx}/{len(user_ids)} 个用户")
             except Exception as e:
@@ -805,6 +820,9 @@ class FeatureExtractor:
             for user_id in user_ids:
                 try:
                     features = self.extract_features(user_id)
+                    # 如果返回None（profile数据缺失），跳过该账号
+                    if features is None:
+                        continue
                     if label is not None:
                         features['label'] = label
                     all_features.append(features)
