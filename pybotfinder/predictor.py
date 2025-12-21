@@ -260,6 +260,20 @@ class BotPredictor:
                 'error': 'Profile数据采集失败，无法进行预测。可能原因：账号不存在、被封禁或Cookie无效。'
             }
         
+        # 检查profile_data是否包含有效的用户信息
+        user = None
+        if profile_data and isinstance(profile_data, dict):
+            if 'data' in profile_data:
+                user = profile_data['data'].get('user') or profile_data['data'].get('userInfo')
+        
+        if not user or not isinstance(user, dict):
+            logger.error(f"用户 {user_id} 的profile数据无效（无法找到用户信息），无法进行预测")
+            return {
+                'user_id': user_id,
+                'success': False,
+                'error': 'Profile数据无效，无法找到用户信息。可能原因：账号不存在、被封禁或Cookie无效。'
+            }
+        
         # posts数据可以为空（用户可能没有发过帖子），这是正常情况
         if posts_data is None:
             posts_data = []  # 设置为空列表，让特征提取器使用默认值
