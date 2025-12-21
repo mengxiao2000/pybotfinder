@@ -5,6 +5,9 @@
 pybotfinder是一个微博社交机器人检测工具包
 基于随机森林的微博社交机器人检测系统，提供开箱即用的预测功能。
 
+
+<br clear="right"/>
+
 ## Installation
 
 ```bash
